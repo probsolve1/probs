@@ -1,4 +1,3 @@
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -89,6 +88,7 @@
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 15px rgba(255, 255, 255, 0);
             border: 1px solid #3d3d3d;
             transition: box-shadow 0.3s ease-in-out;
+            position: relative;
         }
         .input-bar-container:hover {
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), 0 0 15px rgba(255, 255, 255, 0.2);
@@ -102,6 +102,7 @@
             font-size: 1rem;
             padding: 0.5rem 0;
             line-height: 1.5;
+            z-index: 10;
         }
         .input-bar::placeholder {
             color: #9ca3af;
@@ -177,6 +178,43 @@
             gap: 0.75rem;
             margin-top: 1rem;
         }
+        #imagePreviewContainer {
+            width: 100%;
+            max-width: 100%;
+            margin-bottom: 1rem;
+            border-radius: 1rem;
+            background-color: #242424;
+            padding: 1rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 0.5rem;
+        }
+        .remove-ss-button {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+            z-index: 20;
+        }
+        .remove-ss-button:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
     </style>
 </head>
 <body>
@@ -185,6 +223,10 @@
             <h1 class="text-4xl font-bold text-white">ProbSolver</h1>
         </div>
         <div id="solutionContainer" class="solution-box hidden"></div>
+        <div id="imagePreviewContainer" class="hidden">
+            <img id="imagePreview" class="image-preview" />
+            <button id="removeSsButton" class="remove-ss-button hidden">&times;</button>
+        </div>
         <div id="loadingMessage" class="flex items-center text-gray-500 hidden">
             <div class="loading-dots">
                 <div class="dot"></div>
@@ -224,6 +266,9 @@
         const solutionContainer = document.getElementById('solutionContainer');
         const loadingMessage = document.getElementById('loadingMessage');
         const titleContainer = document.getElementById('titleContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const removeSsButton = document.getElementById('removeSsButton');
         let uploadedImageBase64 = null;
         let uploadedImageMimeType = null;
         let lastProblemText = '';
@@ -239,7 +284,11 @@
                         reader.onload = (e) => {
                             uploadedImageBase64 = e.target.result.split(',')[1];
                             uploadedImageMimeType = blob.type;
-                            wordProblemInput.value = 'Image pasted. Ready to solve.';
+                            imagePreview.src = e.target.result;
+                            imagePreviewContainer.classList.remove('hidden');
+                            removeSsButton.classList.remove('hidden');
+                            wordProblemInput.placeholder = 'Image pasted. Ready to solve.';
+                            wordProblemInput.value = '';
                         };
                         reader.readAsDataURL(blob);
                         break;
@@ -255,11 +304,23 @@
                 reader.onload = (e) => {
                     uploadedImageBase64 = e.target.result.split(',')[1];
                     uploadedImageMimeType = file.type;
-                    wordProblemInput.value = 'Image uploaded. Ready to solve.';
-                    setTimeout(() => wordProblemInput.value = '', 2000);
+                    imagePreview.src = e.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                    removeSsButton.classList.remove('hidden');
+                    wordProblemInput.placeholder = 'Image uploaded. Ready to solve.';
+                    wordProblemInput.value = '';
                 };
                 reader.readAsDataURL(file);
             }
+        });
+
+        removeSsButton.addEventListener('click', () => {
+            uploadedImageBase64 = null;
+            uploadedImageMimeType = null;
+            imagePreview.src = '';
+            imagePreviewContainer.classList.add('hidden');
+            removeSsButton.classList.add('hidden');
+            wordProblemInput.placeholder = 'Ask ProbSolver';
         });
 
         function parseAndRenderMarkdown(markdown) {
@@ -288,9 +349,10 @@
             titleContainer.classList.add('hidden');
             solutionContainer.classList.add('hidden');
             loadingMessage.classList.remove('hidden');
-            
+            imagePreviewContainer.classList.add('hidden');
+
             const systemPrompt = "You are a helpful and expert math tutor. Your task is to solve the provided math word problem, which may be given as text, an image, or both. First, provide a clear, step-by-step solution. Use markdown headings (e.g., ## Step 1) to break down the process. Use LaTeX for all mathematical expressions and formulas. After the solution steps, create a final heading titled 'Final Answer' and clearly state the answer. Do not include any introductory or concluding sentences. The entire output should be a single block of text representing the formatted solution.";
-            const apiKey = "";
+            const apiKey = ''; // Your API key here
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
             const parts = [];
             if (userQuery) {
@@ -368,7 +430,7 @@
             loadingMessage.classList.remove('hidden');
             solutionContainer.classList.add('hidden');
             
-            const apiKey = "";
+            const apiKey = ''; // Your API key here
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             const payload = {
@@ -454,3 +516,4 @@
     </script>
 </body>
 </html>
+
